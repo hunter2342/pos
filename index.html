@@ -363,11 +363,25 @@
             else openCustomerOrders();
         }
 
-        function openAuthModal() {
-            if(currentUser) {
-                if(confirm("هل تريد تسجيل الخروج؟")) handleLogout();
-            } else { document.getElementById('auth-modal').style.display = 'flex'; }
+       function openAuthModal() {
+    if(currentUser) {
+        // التحقق مما إذا كان المستخدم داخل لوحة التحكم بالفعل
+        const isDashboardActive = document.getElementById('dashboard-view').classList.contains('active');
+        const isOrdersActive = document.getElementById('my-orders-view').classList.contains('active');
+
+        if (isDashboardActive || isOrdersActive) {
+            // إذا كان داخل اللوحة وضغط على الأيقونة، نسأله عن الخروج
+            if(confirm("هل تريد تسجيل الخروج؟")) handleLogout();
+        } else {
+            // إذا كان في الرئيسية، نوجهه للوحة الخاصة به حسب نوع حسابه
+            if(userRole === 'vendor') switchTab('dashboard-view');
+            else openCustomerOrders();
         }
+    } else { 
+        // إذا لم يقم بتسجيل الدخول، نفتح نافذة الدخول
+        document.getElementById('auth-modal').style.display = 'flex'; 
+    }
+}
 
         function toggleAuthMode() {
             isSignUp = !isSignUp;
