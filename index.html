@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>متجري - المتجر الشامل</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11,30 +11,30 @@
     <style>
         /* ================= المتغيرات والألوان ================= */
         :root { --primary: #4F46E5; --primary-light: #EEF2FF; --success: #10B981; --warning: #F59E0B; --bg-color: #F8FAFC; --card-bg: #FFFFFF; --text-dark: #1E293B; --text-muted: #64748B; --border-color: #E2E8F0; --shadow: 0 4px 15px rgba(0, 0, 0, 0.05); --radius: 12px; }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-tap-highlight-color: transparent;}
         body { background-color: var(--bg-color); color: var(--text-dark); overflow-x: hidden; }
 
-        /* ================= شريط التنقل المتجاوب ================= */
-        header { background-color: var(--card-bg); padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); position: sticky; top: 0; z-index: 100; flex-wrap: wrap; }
+        /* ================= شريط التنقل (للكمبيوتر) ================= */
+        header { background-color: var(--card-bg); padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); position: sticky; top: 0; z-index: 100; }
         .logo { color: var(--primary); font-size: 1.5rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-        nav { display: flex; gap: 20px; align-items: center; flex-wrap: wrap;}
-        nav a { text-decoration: none; color: var(--text-muted); font-weight: 500; transition: color 0.3s; cursor: pointer; }
-        nav a:hover, nav a.active { color: var(--primary); }
+        .desktop-nav { display: flex; gap: 20px; align-items: center; }
+        .desktop-nav a { text-decoration: none; color: var(--text-muted); font-weight: 500; transition: color 0.3s; cursor: pointer; }
+        .desktop-nav a:hover, .desktop-nav a.active { color: var(--primary); }
         .nav-icons { display: flex; gap: 15px; align-items: center; }
         .nav-icons i { font-size: 1.3rem; color: var(--text-dark); cursor: pointer; position: relative;}
         .cart-badge, .msg-badge { position: absolute; top: -8px; right: -8px; background: #EF4444; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 50%; font-weight: bold; display: flex; justify-content: center; align-items: center;}
 
         /* ================= التخطيط والأزرار ================= */
-        .app-container { display: none; padding: 2rem 5%; animation: fadeIn 0.4s; }
+        .app-container { display: none; padding: 2rem 5%; animation: fadeIn 0.3s; padding-bottom: 80px;}
         .app-container.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .btn-primary { background: var(--primary); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s;}
+        .btn-primary { background: var(--primary); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; width: auto;}
         .btn-success { background: var(--success); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;}
         .btn-danger { background: #EF4444; color: white; padding: 8px 15px; border: none; border-radius: 8px; cursor: pointer;}
         
-        /* ================= واجهة المتجر (Mobile First Grid) ================= */
-        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        /* ================= واجهة المتجر ================= */
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
         .product-card { background: var(--card-bg); border-radius: var(--radius); padding: 15px; box-shadow: var(--shadow); transition: transform 0.3s; display: flex; flex-direction: column;}
         .product-card img { width: 100%; height: 160px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
         .product-actions { display: flex; justify-content: space-between; align-items: center; margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 10px; }
@@ -49,7 +49,6 @@
         .dash-section { display: none; background: var(--card-bg); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); animation: fadeIn 0.3s;}
         .dash-section.active { display: block; }
         
-        /* ================= صندوق رسائل التاجر ================= */
         .chat-list-item { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
         .chat-list-item:hover { background: var(--bg-color); }
         .chat-list-item h4 { margin-bottom: 5px; color: var(--text-dark); }
@@ -73,7 +72,7 @@
         .chat-input input { flex-grow: 1; border: none; outline: none; padding: 10px; background: var(--bg-color); border-radius: 20px;}
         .chat-input button { background: transparent; border: none; color: var(--primary); cursor: pointer; font-size: 1.2rem; padding: 0 15px;}
         
-        /* ================= نظام الإشعارات (Toasts) ================= */
+        /* ================= نظام الإشعارات ================= */
         #toast-container { position: fixed; top: 80px; left: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: var(--card-bg); border-right: 4px solid var(--primary); padding: 15px 20px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; gap: 5px; min-width: 250px;}
         @keyframes slideIn { from { transform: translateX(-120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -84,22 +83,43 @@
         .star-rating { color: #ccc; font-size: 1.8rem; cursor: pointer; display: flex; justify-content: center; gap: 5px;}
         .star-rating .selected { color: var(--warning); }
 
+        /* ================= شريط التنقل السفلي (مخصص للهاتف) ================= */
+        .mobile-bottom-nav { display: none; }
+
         /* ================= التصميم للهواتف المحمولة (Responsive) ================= */
         @media (max-width: 768px) {
-            header { flex-direction: column; gap: 15px; padding: 15px; }
-            .logo { width: 100%; justify-content: center; }
-            nav { width: 100%; justify-content: center; font-size: 0.95rem; }
-            .app-container { padding: 1.5rem 5%; }
+            header .desktop-nav { display: none; } /* إخفاء القائمة العلوية */
+            .logo { width: 100%; justify-content: center; margin-bottom: 10px;}
+            
+            /* شريط التنقل السفلي */
+            .mobile-bottom-nav {
+                display: flex; justify-content: space-around; align-items: center;
+                position: fixed; bottom: 0; left: 0; right: 0;
+                background: var(--card-bg); box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+                padding: 10px 0; z-index: 1500;
+            }
+            .nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; position: relative;}
+            .nav-item.active { color: var(--primary); }
+            .nav-item i { font-size: 1.3rem; }
+
+            .app-container { padding: 1.5rem 5% 90px 5%; }
             .dashboard-layout { flex-direction: column; }
             .sidebar { width: 100%; position: relative; top: 0; padding: 10px; }
             .sidebar-menu { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 5px;}
             .sidebar-menu li { white-space: nowrap; border-right: none; border-bottom: 3px solid transparent; padding: 10px; border-radius: 6px;}
-            .sidebar-menu li:hover, .sidebar-menu li.active { border-bottom-color: var(--primary); border-right-color: transparent;}
+            .sidebar-menu li:hover, .sidebar-menu li.active { border-bottom-color: var(--primary); border-right-color: transparent; background: transparent; color: var(--primary);}
+            
             .checkout-layout { grid-template-columns: 1fr; }
-            .chat-widget { width: 90%; left: 5%; right: 5%; bottom: 15px; }
-            .products-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-            .product-card img { height: 130px; }
-            .product-actions button { font-size: 0.8rem; padding: 5px;}
+            .products-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } /* عرض منتجين في الصف */
+            .product-card { padding: 10px; }
+            .product-card img { height: 120px; }
+            .product-card h4 { font-size: 0.95rem; }
+            .product-actions button { font-size: 0.8rem; padding: 6px;}
+            
+            /* نافذة المحادثة شاشة كاملة على الهاتف */
+            .chat-widget { width: 100%; height: 100vh; bottom: 0; left: 0; border-radius: 0; z-index: 2000; border: none;}
+            .chat-body { height: calc(100vh - 130px); }
+            
             #toast-container { left: 5%; right: 5%; top: 10px; align-items: center;}
             .toast { width: 100%; text-align: center; }
         }
@@ -110,21 +130,38 @@
     <!-- حاوية الإشعارات -->
     <div id="toast-container"></div>
 
-    <!-- شريط التنقل -->
+    <!-- شريط التنقل العلوي -->
     <header>
         <div class="logo" onclick="switchTab('store-view')"><i class="fas fa-store"></i> متجري</div>
-        <nav>
+        <div class="desktop-nav">
             <a onclick="switchTab('store-view')" class="active"><i class="fas fa-home"></i> الرئيسية</a>
             <a onclick="openCustomerOrders()" id="nav-my-orders" style="display:none;"><i class="fas fa-box-open"></i> طلباتي</a>
             <div class="nav-icons" style="margin-right: 15px;">
-                <span onclick="switchTab('checkout-view')" style="position: relative;">
+                <span onclick="switchTab('checkout-view')" style="position: relative; cursor: pointer;">
                     <i class="fas fa-shopping-cart"></i>
                     <span class="cart-badge" id="cart-count">0</span>
                 </span>
                 <i class="fas fa-user-circle" onclick="openAuthModal()" id="user-icon" title="حسابي"></i>
             </div>
-        </nav>
+        </div>
     </header>
+
+    <!-- شريط التنقل السفلي (يظهر للهواتف فقط) -->
+    <div class="mobile-bottom-nav">
+        <div class="nav-item active" onclick="switchTab('store-view'); updateMobileNav(this);">
+            <i class="fas fa-home"></i><span>الرئيسية</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('checkout-view'); updateMobileNav(this);">
+            <i class="fas fa-shopping-cart"></i><span>السلة</span>
+            <span class="cart-badge" id="mobile-cart-count">0</span>
+        </div>
+        <div class="nav-item" id="mobile-dash-btn" onclick="openDashboardOrOrders(); updateMobileNav(this);">
+            <i class="fas fa-box-open"></i><span id="mobile-dash-text">حسابي</span>
+        </div>
+        <div class="nav-item" onclick="openAuthModal();">
+            <i class="fas fa-user-circle" id="mobile-user-icon"></i><span>الدخول</span>
+        </div>
+    </div>
 
     <!-- 1. واجهة المتجر -->
     <main id="store-view" class="app-container active">
@@ -140,10 +177,10 @@
             <aside class="sidebar">
                 <ul class="sidebar-menu">
                     <li onclick="switchDashTab('dash-products', this)" class="active">
-                        <span><i class="fas fa-box"></i> إدارة المنتجات</span>
+                        <span><i class="fas fa-box"></i> المنتجات</span>
                     </li>
                     <li onclick="switchDashTab('dash-orders', this)">
-                        <span><i class="fas fa-clipboard-list"></i> الطلبات الواردة</span>
+                        <span><i class="fas fa-clipboard-list"></i> الطلبات</span>
                     </li>
                     <li onclick="switchDashTab('dash-messages', this)">
                         <span><i class="fas fa-envelope"></i> الرسائل</span>
@@ -159,8 +196,8 @@
                 <!-- قسم المنتجات -->
                 <div id="dash-products" class="dash-section active">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap:10px;">
-                        <h3 style="margin:0;">منتجاتي المرفوعة</h3>
-                        <button class="btn-primary" onclick="document.getElementById('addProductForm').style.display='block'">+ منتج جديد</button>
+                        <h3 style="margin:0;">منتجاتي</h3>
+                        <button class="btn-primary" onclick="document.getElementById('addProductForm').style.display='block'">+ جديد</button>
                     </div>
 
                     <div class="add-product-form" id="addProductForm" style="background: var(--bg-color); padding: 20px; border-radius: 12px; margin-bottom: 20px; display: none; border: 1px solid var(--border-color);">
@@ -168,12 +205,12 @@
                         <form onsubmit="submitNewProduct(event)">
                             <div class="form-group"><label>الاسم</label><input type="text" id="new-prod-title" required></div>
                             <div style="display: flex; gap: 15px;">
-                                <div class="form-group" style="flex: 1;"><label>السعر (USD)</label><input type="number" step="0.01" id="new-prod-price" required></div>
+                                <div class="form-group" style="flex: 1;"><label>السعر (ج.م)</label><input type="number" step="0.01" id="new-prod-price" required></div>
                                 <div class="form-group" style="flex: 1;"><label>المخزون</label><input type="number" id="new-prod-stock" required></div>
                             </div>
                             <div class="form-group"><label>صورة (من الجهاز)</label><input type="file" id="new-prod-img" accept="image/*" required></div>
-                            <button type="submit" class="btn-success">نشر المنتج</button>
-                            <button type="button" class="btn-danger" onclick="document.getElementById('addProductForm').style.display='none'">إلغاء</button>
+                            <button type="submit" class="btn-success" style="width:100%; margin-bottom:10px;">نشر المنتج</button>
+                            <button type="button" class="btn-danger" style="width:100%;" onclick="document.getElementById('addProductForm').style.display='none'">إلغاء</button>
                         </form>
                     </div>
 
@@ -186,7 +223,7 @@
                     <div id="vendor-orders-list">جاري البحث عن طلبات...</div>
                 </div>
 
-                <!-- قسم الرسائل (الصندوق الوارد للتاجر) -->
+                <!-- قسم الرسائل -->
                 <div id="dash-messages" class="dash-section">
                     <h3 style="margin-bottom: 20px;">صندوق الوارد</h3>
                     <div id="vendor-conversations-list">جاري تحميل الرسائل...</div>
@@ -217,18 +254,18 @@
                 <h3 style="margin-bottom: 20px;">ملخص السلة</h3>
                 <div id="cart-items-container"></div>
                 <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2rem; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
-                    <span>الإجمالي:</span><span id="cart-total-price" style="color: var(--primary);">$0.00</span>
+                    <span>الإجمالي:</span><span id="cart-total-price" style="color: var(--primary);">0.00 ج.م</span>
                 </div>
                 <button class="btn-danger" style="width: 100%; margin-top: 15px;" onclick="clearCart()">إفراغ السلة</button>
             </div>
         </div>
     </main>
 
-    <!-- نافذة الدردشة العائمة -->
+    <!-- نافذة الدردشة الفورية -->
     <div class="chat-widget" id="chatWidget">
         <div class="chat-header">
             <span id="chat-vendor-name"><i class="fas fa-user-circle"></i> محادثة</span>
-            <i class="fas fa-times" style="cursor: pointer; padding:5px;" onclick="closeChat()"></i>
+            <i class="fas fa-times" style="cursor: pointer; padding:5px; font-size:1.2rem;" onclick="closeChat()"></i>
         </div>
         <div class="chat-body" id="chatBody"></div>
         <div class="chat-input">
@@ -281,7 +318,7 @@
         let currentReviewProductId = null;
         let currentRating = 5;
 
-        // دالة الإشعارات اللحظية (Toasts)
+        // إشعارات (Toasts)
         function showNotification(title, body) {
             const toast = document.createElement('div');
             toast.className = 'toast';
@@ -290,15 +327,18 @@
             setTimeout(() => toast.remove(), 4000);
         }
 
+        function updateMobileNav(element) {
+            document.querySelectorAll('.mobile-bottom-nav .nav-item').forEach(el => el.classList.remove('active'));
+            if(element) element.classList.add('active');
+        }
+
         function switchTab(tabId) {
             document.querySelectorAll('.app-container').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             window.scrollTo(0, 0);
             
             if(tabId === 'store-view') fetchRealProducts();
-            if(tabId === 'dashboard-view') {
-                document.querySelector('.sidebar-menu li').click(); // فتح تبويب المنتجات افتراضياً
-            }
+            if(tabId === 'dashboard-view') document.querySelector('.sidebar-menu li').click();
             if(tabId === 'checkout-view') renderCart();
         }
 
@@ -311,16 +351,21 @@
             if(sectionId === 'dash-products') fetchVendorProducts();
             if(sectionId === 'dash-orders') fetchVendorOrders();
             if(sectionId === 'dash-messages') {
-                document.getElementById('msg-badge-count').style.display = 'none'; // إخفاء الشارة عند القراءة
+                document.getElementById('msg-badge-count').style.display = 'none';
                 document.getElementById('msg-badge-count').innerText = '0';
                 fetchVendorConversations();
             }
         }
 
+        function openDashboardOrOrders() {
+            if(!currentUser) { openAuthModal(); return; }
+            if(userRole === 'vendor') switchTab('dashboard-view');
+            else openCustomerOrders();
+        }
+
         function openAuthModal() {
             if(currentUser) {
-                if(userRole === 'vendor') switchTab('dashboard-view');
-                else handleLogout();
+                if(confirm("هل تريد تسجيل الخروج؟")) handleLogout();
             } else { document.getElementById('auth-modal').style.display = 'flex'; }
         }
 
@@ -340,7 +385,7 @@
                     const name = document.getElementById('auth-name').value;
                     const role = document.getElementById('auth-role').value;
                     const { error } = await supabaseClient.auth.signUp({ email, password, options: { data: { full_name: name, role: role } } });
-                    if (error) throw error; alert("تم التسجيل! يمكنك الدخول الآن."); document.getElementById('auth-modal').style.display='none';
+                    if (error) throw error; alert("تم التسجيل!"); document.getElementById('auth-modal').style.display='none';
                 } else {
                     const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
                     if (error) throw error; document.getElementById('auth-modal').style.display='none';
@@ -360,18 +405,27 @@
                 if (profile) {
                     userRole = profile.role;
                     document.getElementById('user-icon').style.color = 'var(--success)';
-                    if(userRole === 'customer') document.getElementById('nav-my-orders').style.display = 'inline-block';
-                    subscribeToMessages(); // تشغيل الإشعارات عند الدخول
+                    document.getElementById('mobile-user-icon').style.color = 'var(--success)';
+                    
+                    if(userRole === 'customer') {
+                        document.getElementById('nav-my-orders').style.display = 'inline-block';
+                        document.getElementById('mobile-dash-text').innerText = 'طلباتي';
+                    } else {
+                        document.getElementById('mobile-dash-text').innerText = 'متجري';
+                    }
+                    subscribeToMessages();
                 }
             } else {
                 currentUser = null; userRole = 'customer';
                 document.getElementById('user-icon').style.color = 'var(--text-dark)';
+                document.getElementById('mobile-user-icon').style.color = 'var(--text-muted)';
                 document.getElementById('nav-my-orders').style.display = 'none';
+                document.getElementById('mobile-dash-text').innerText = 'حسابي';
                 if(chatSubscription) supabaseClient.removeChannel(chatSubscription);
             }
         });
 
-        // 1. عرض المنتجات في المتجر
+        // ================= المنتجات والعملة بالجنيه =================
         async function fetchRealProducts() {
             const container = document.getElementById('public-products');
             try {
@@ -393,7 +447,7 @@
                             <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom:5px;"><i class="fas fa-store"></i> ${p.profiles?.full_name || 'تاجر'}</div>
                             <h4 style="margin-bottom: 5px; font-size:1rem; line-height:1.3;">${p.title}</h4>
                             <div style="margin-bottom: 5px;">${starsHTML}</div>
-                            <div style="font-size: 1.1rem; font-weight: bold; color: var(--primary);">$${p.price}</div>
+                            <div style="font-size: 1.1rem; font-weight: bold; color: var(--primary);"><span>${p.price}</span> ج.م</div>
                             <div class="product-actions">
                                 <button class="btn-primary" style="padding: 6px 12px; font-size:0.9rem;" onclick="addToCart('${p.id}', '${p.title.replace(/'/g, "\\'")}', ${p.price}, '${p.image_url}')">السلة <i class="fas fa-plus"></i></button>
                                 <div>
@@ -406,7 +460,6 @@
             } catch (err) { console.error(err); }
         }
 
-        // 2. إدارة التاجر
         async function submitNewProduct(e) {
             e.preventDefault();
             const btn = e.target.querySelector('button[type="submit"]'); btn.innerText='جاري الرفع...'; btn.disabled=true;
@@ -431,7 +484,7 @@
             container.innerHTML = data.map(p => `
                 <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--border-color); display:flex; align-items:center; gap:15px;">
                     <img src="${p.image_url}" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">
-                    <div><strong>${p.title}</strong><div style="color: var(--text-muted); font-size: 0.9rem;">$${p.price} | المخزون: ${p.stock}</div></div>
+                    <div><strong>${p.title}</strong><div style="color: var(--text-muted); font-size: 0.9rem;">${p.price} ج.م | المخزون: ${p.stock}</div></div>
                 </div>`).join('');
         }
 
@@ -455,7 +508,7 @@
                         <img src="${item.products.image_url}" style="width: 50px; height: 50px; border-radius: 5px; object-fit: cover;">
                         <div>
                             <div><strong>${item.products.title}</strong></div>
-                            <div style="color: var(--primary); font-size: 0.9rem;">$${item.price_at_time} x ${item.quantity}</div>
+                            <div style="color: var(--primary); font-size: 0.9rem;">${item.price_at_time} ج.م x ${item.quantity}</div>
                         </div>
                     </div>
                     <div style="margin-top: 10px; font-size: 0.85rem; background: var(--bg-color); padding: 10px; border-radius: 5px; line-height:1.5;">${item.orders.address_details}</div>
@@ -468,25 +521,35 @@
             showNotification("تحديث", "تم تحديث حالة الطلب.");
         }
 
-        // 3. صندوق رسائل التاجر (الجديد)
+        // ================= إصلاح نظام المحادثة (الدردشة الدقيقة) =================
         async function fetchVendorConversations() {
             if(!currentUser) return;
             const container = document.getElementById('vendor-conversations-list');
             try {
-                const { data, error } = await supabaseClient.from('messages').select(`id, content, created_at, sender_id, receiver_id`).or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`).order('created_at', { ascending: false });
-                if(error) throw error;
-                if(!data || data.length === 0) { container.innerHTML = '<p>لا توجد رسائل سابقة.</p>'; return; }
+                // جلب الرسائل التي تخص المستخدم الحالي بطريقة آمنة لتجنب مشاكل الصيغ
+                const { data, error } = await supabaseClient.from('messages')
+                    .select(`id, content, created_at, sender_id, receiver_id`)
+                    .in('sender_id', [currentUser.id])
+                    .order('created_at', { ascending: false });
+                    
+                const { data: dataReceived } = await supabaseClient.from('messages')
+                    .select(`id, content, created_at, sender_id, receiver_id`)
+                    .in('receiver_id', [currentUser.id])
+                    .order('created_at', { ascending: false });
+                
+                let allMessages = [...(data||[]), ...(dataReceived||[])];
+                allMessages.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)); // الأحدث أولاً
 
-                // تجميع الرسائل حسب العميل للحصول على أحدث رسالة
+                if(!allMessages || allMessages.length === 0) { container.innerHTML = '<p>لا توجد رسائل سابقة.</p>'; return; }
+
                 const convos = {};
-                for(let msg of data) {
+                for(let msg of allMessages) {
                     const otherId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
                     if(!convos[otherId]) {
                         convos[otherId] = { id: otherId, lastMsg: msg.content };
                     }
                 }
                 
-                // للحصول على أسماء العملاء بأمان
                 const userIds = Object.keys(convos);
                 const { data: profiles } = await supabaseClient.from('profiles').select('id, full_name').in('id', userIds);
                 profiles.forEach(p => { if(convos[p.id]) convos[p.id].name = p.full_name; });
@@ -503,42 +566,6 @@
             } catch(err) { console.error(err); }
         }
 
-        // 4. طلبات العميل
-        function openCustomerOrders() { switchTab('my-orders-view'); fetchCustomerOrders(); }
-        async function fetchCustomerOrders() {
-            const container = document.getElementById('customer-orders-list');
-            const { data: orders } = await supabaseClient.from('orders').select(`id, status, total_price, order_items(quantity, products(title))`).eq('customer_id', currentUser.id);
-            if (!orders || orders.length === 0) { container.innerHTML = 'لا توجد طلبات.'; return; }
-            container.innerHTML = orders.map(ord => `
-                <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 15px; box-shadow: var(--shadow);">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                        <strong>طلب #${ord.id.substring(0,8)}</strong>
-                        <strong style="color:var(--${ord.status==='delivered'?'success':'warning'});">${ord.status==='pending'?'قيد التجهيز':ord.status==='shipped'?'في الطريق':'تم التوصيل'}</strong>
-                    </div>
-                    <div>${ord.order_items.map(i => `<div style="font-size:0.9rem;">- ${i.products.title} (${i.quantity})</div>`).join('')}</div>
-                    <div style="margin-top: 10px; font-weight: bold;">الإجمالي: $${ord.total_price}</div>
-                </div>`).join('');
-        }
-
-        // 5. التقييمات
-        function openReviewModal(productId) {
-            if(!currentUser) return openAuthModal();
-            currentReviewProductId = productId; setRating(5);
-            document.getElementById('review-comment').value = '';
-            document.getElementById('review-modal').style.display = 'flex';
-        }
-        function setRating(stars) {
-            currentRating = stars;
-            const container = document.getElementById('star-rating-container');
-            container.innerHTML = '';
-            for(let i=1; i<=5; i++) container.innerHTML += `<i class="fas fa-star ${i <= stars ? 'selected' : ''}" onclick="setRating(${i})"></i>`;
-        }
-        async function submitReview() {
-            await supabaseClient.from('reviews').insert([{ product_id: currentReviewProductId, customer_id: currentUser.id, rating: currentRating, comment: document.getElementById('review-comment').value }]);
-            showNotification("تم", "شكراً لتقييمك!"); document.getElementById('review-modal').style.display = 'none'; fetchRealProducts();
-        }
-
-        // 6. الدردشة المباشرة والإشعارات
         async function openChat(otherId, otherName) {
             if(!currentUser) return openAuthModal();
             if(currentUser.id === otherId) return alert("لا يمكنك مراسلة نفسك.");
@@ -550,14 +577,24 @@
             loadChatHistory();
         }
 
-        function closeChat() { document.getElementById('chatWidget').style.display = 'none'; }
+        function closeChat() { document.getElementById('chatWidget').style.display = 'none'; currentChatReceiverId = null; }
 
         async function loadChatHistory() {
             const chatBody = document.getElementById('chatBody');
             chatBody.innerHTML = '<div style="text-align:center; color:#999; font-size:0.8rem; margin-top:20px;">جاري التحميل...</div>';
-            const { data } = await supabaseClient.from('messages').select('*').or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${currentChatReceiverId}),and(sender_id.eq.${currentChatReceiverId},receiver_id.eq.${currentUser.id})`).order('created_at', { ascending: true });
+            
+            // جلب المحادثة بدقة بين الطرفين
+            const { data } = await supabaseClient.from('messages').select('*')
+                .in('sender_id', [currentUser.id, currentChatReceiverId])
+                .in('receiver_id', [currentUser.id, currentChatReceiverId])
+                .order('created_at', { ascending: true });
+                
             chatBody.innerHTML = '';
-            if(data) data.forEach(msg => displayMessage(msg));
+            if(data) {
+                // تصفية إضافية لضمان الدقة
+                const filtered = data.filter(m => (m.sender_id === currentUser.id && m.receiver_id === currentChatReceiverId) || (m.sender_id === currentChatReceiverId && m.receiver_id === currentUser.id));
+                filtered.forEach(msg => displayMessage(msg));
+            }
         }
 
         function displayMessage(msg) {
@@ -575,7 +612,6 @@
             await supabaseClient.from('messages').insert([{ sender_id: currentUser.id, receiver_id: currentChatReceiverId, content: text }]);
         }
 
-        // استقبال الرسائل والإشعارات اللحظية
         function subscribeToMessages() {
             if(chatSubscription) supabaseClient.removeChannel(chatSubscription);
             
@@ -583,47 +619,78 @@
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
                     const msg = payload.new;
                     
-                    // إذا كنت أنا المستقبل للرسالة
+                    // إذا استلمت رسالة
                     if (msg.receiver_id === currentUser.id) {
-                        
-                        // 1. إظهار الإشعار المنبثق (Toast)
                         showNotification('رسالة جديدة 📩', msg.content);
                         
-                        // 2. تحديث عداد الرسائل في لوحة التاجر
                         let badge = document.getElementById('msg-badge-count');
-                        if(badge && document.getElementById('dash-messages').classList.contains('active') === false) {
+                        if(badge && !document.getElementById('dash-messages').classList.contains('active')) {
                             badge.style.display = 'flex';
                             badge.innerText = parseInt(badge.innerText || 0) + 1;
                         }
                         
-                        // 3. تحديث صندوق الوارد إذا كان مفتوحاً
-                        if(document.getElementById('dash-messages').classList.contains('active')) {
-                            fetchVendorConversations();
-                        }
+                        if(document.getElementById('dash-messages').classList.contains('active')) fetchVendorConversations();
                     }
 
-                    // إذا كانت نافذة المحادثة مفتوحة مع هذا الشخص تحديداً، اعرض الرسالة
-                    if (
-                        (msg.sender_id === currentUser.id && msg.receiver_id === currentChatReceiverId) ||
-                        (msg.sender_id === currentChatReceiverId && msg.receiver_id === currentUser.id)
-                    ) {
+                    // تحديث نافذة الدردشة إذا كانت مفتوحة للمرسل والمستقبل
+                    if (currentChatReceiverId && 
+                        ((msg.sender_id === currentUser.id && msg.receiver_id === currentChatReceiverId) ||
+                        (msg.sender_id === currentChatReceiverId && msg.receiver_id === currentUser.id))) {
                         displayMessage(msg);
                     }
                 })
                 .subscribe();
         }
 
-        // السلة
+        // ================= طلبات العميل =================
+        function openCustomerOrders() { switchTab('my-orders-view'); fetchCustomerOrders(); }
+        async function fetchCustomerOrders() {
+            const container = document.getElementById('customer-orders-list');
+            const { data: orders } = await supabaseClient.from('orders').select(`id, status, total_price, order_items(quantity, products(title))`).eq('customer_id', currentUser.id);
+            if (!orders || orders.length === 0) { container.innerHTML = 'لا توجد طلبات.'; return; }
+            container.innerHTML = orders.map(ord => `
+                <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 15px; box-shadow: var(--shadow);">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <strong>طلب #${ord.id.substring(0,8)}</strong>
+                        <strong style="color:var(--${ord.status==='delivered'?'success':'warning'});">${ord.status==='pending'?'قيد التجهيز':ord.status==='shipped'?'في الطريق':'تم التوصيل'}</strong>
+                    </div>
+                    <div>${ord.order_items.map(i => `<div style="font-size:0.9rem;">- ${i.products.title} (${i.quantity})</div>`).join('')}</div>
+                    <div style="margin-top: 10px; font-weight: bold;">الإجمالي: ${ord.total_price} ج.م</div>
+                </div>`).join('');
+        }
+
+        // ================= التقييمات =================
+        function openReviewModal(productId) {
+            if(!currentUser) return openAuthModal();
+            currentReviewProductId = productId; setRating(5);
+            document.getElementById('review-comment').value = '';
+            document.getElementById('review-modal').style.display = 'flex';
+        }
+        function setRating(stars) {
+            currentRating = stars;
+            const container = document.getElementById('star-rating-container');
+            container.innerHTML = '';
+            for(let i=1; i<=5; i++) container.innerHTML += `<i class="fas fa-star ${i <= stars ? 'selected' : ''}" onclick="setRating(${i})"></i>`;
+        }
+        async function submitReview() {
+            await supabaseClient.from('reviews').insert([{ product_id: currentReviewProductId, customer_id: currentUser.id, rating: currentRating, comment: document.getElementById('review-comment').value }]);
+            showNotification("تم", "شكراً لتقييمك!"); document.getElementById('review-modal').style.display = 'none'; fetchRealProducts();
+        }
+
+        // ================= السلة (مع تحديث العملة) =================
         updateCartBadge();
         function addToCart(id, title, price, img) { cart.push({ id, title, price, img }); localStorage.setItem('myCart', JSON.stringify(cart)); updateCartBadge(); showNotification("السلة", `تمت إضافة: ${title}`); }
-        function updateCartBadge() { document.getElementById('cart-count').innerText = cart.length; }
+        function updateCartBadge() { 
+            document.getElementById('cart-count').innerText = cart.length; 
+            document.getElementById('mobile-cart-count').innerText = cart.length; 
+        }
         function clearCart() { cart = []; localStorage.setItem('myCart', JSON.stringify(cart)); updateCartBadge(); renderCart(); }
         function renderCart() {
             const container = document.getElementById('cart-items-container'); const totalSpan = document.getElementById('cart-total-price');
-            if (cart.length === 0) { container.innerHTML = '<p>السلة فارغة.</p>'; totalSpan.innerText = '$0.00'; return; }
+            if (cart.length === 0) { container.innerHTML = '<p>السلة فارغة.</p>'; totalSpan.innerText = '0.00 ج.م'; return; }
             let total = 0;
-            container.innerHTML = cart.map(item => { total += item.price; return `<div style="display:flex; gap:15px; margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:10px; align-items:center;"><img src="${item.img}" style="width:50px; height:50px; border-radius:5px; object-fit:cover;"><div><h4 style="font-size:0.95rem;">${item.title}</h4><div style="color:var(--primary); font-weight:bold;">$${item.price}</div></div></div>`; }).join('');
-            totalSpan.innerText = '$' + total.toFixed(2);
+            container.innerHTML = cart.map(item => { total += item.price; return `<div style="display:flex; gap:15px; margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:10px; align-items:center;"><img src="${item.img}" style="width:50px; height:50px; border-radius:5px; object-fit:cover;"><div><h4 style="font-size:0.95rem;">${item.title}</h4><div style="color:var(--primary); font-weight:bold;">${item.price} ج.م</div></div></div>`; }).join('');
+            totalSpan.innerText = total.toFixed(2) + ' ج.م';
         }
         async function processOrder(e) {
             e.preventDefault();
