@@ -536,79 +536,84 @@
         }
 
         // ================= إصلاح نظام المحادثة (الدردشة الدقيقة) =================
+        // ================= إصلاح نظام المحادثة (صندوق الوارد) =================
         async function fetchVendorConversations() {
             if(!currentUser) return;
             const container = document.getElementById('vendor-conversations-list');
             try {
-                // جلب الرسائل التي تخص المستخدم الحالي بطريقة آمنة لتجنب مشاكل الصيغ
+                // جلب جميع الرسائل المتعلقة بالمستخدم بطريقة مضمونة
                 const { data, error } = await supabaseClient.from('messages')
-                    .select(`id, content, created_at, sender_id, receiver_id`)
-                    .in('sender_id', [currentUser.id])
+                    .select('*')
+                    .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
                     .order('created_at', { ascending: false });
-                    
-                const { data: dataReceived } = await supabaseClient.from('messages')
-                    .select(`id, content, created_at, sender_id, receiver_id`)
-                    .in('receiver_id', [currentUser.id])
-                    .order('created_at', { ascending: false });
-                
-                let allMessages = [...(data||[]), ...(dataReceived||[])];
-                allMessages.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)); // الأحدث أولاً
 
-                if(!allMessages || allMessages.length === 0) { container.innerHTML = '<p>لا توجد رسائل سابقة.</p>'; return; }
+                if(error) throw error;
 
+                if(!data || data.length === 0) { 
+                    container.innerHTML = '<p style="color: var(--text-muted);">لا توجد رسائل سابقة.</p>'; 
+                    return; 
+                }
+
+                // فرز المحادثات
                 const convos = {};
-                for(let msg of allMessages) {
+                for(let msg of data) {
                     const otherId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
                     if(!convos[otherId]) {
                         convos[otherId] = { id: otherId, lastMsg: msg.content };
                     }
                 }
                 
+                // جلب أسماء العملاء
                 const userIds = Object.keys(convos);
-                const { data: profiles } = await supabaseClient.from('profiles').select('id, full_name').in('id', userIds);
-                profiles.forEach(p => { if(convos[p.id]) convos[p.id].name = p.full_name; });
+                if (userIds.length > 0) {
+                    const { data: profiles } = await supabaseClient.from('profiles').select('id, full_name').in('id', userIds);
+                    if (profiles) profiles.forEach(p => { if(convos[p.id]) convos[p.id].name = p.full_name; });
+                }
 
+                // عرض القائمة
                 container.innerHTML = Object.values(convos).map(c => `
                     <div class="chat-list-item" onclick="openChat('${c.id}', '${c.name || 'عميل'}')">
                         <div style="flex-grow:1; overflow:hidden;">
-                            <h4><i class="fas fa-user-circle"></i> ${c.name || 'عميل'}</h4>
-                            <p>${c.lastMsg}</p>
+                            <h4 style="margin-bottom:5px;"><i class="fas fa-user-circle"></i> ${c.name || 'عميل'}</h4>
+                            <p style="font-size:0.9rem; color:var(--text-muted);">${c.lastMsg}</p>
                         </div>
                         <i class="fas fa-chevron-left" style="color:var(--text-muted);"></i>
                     </div>
                 `).join('');
-            } catch(err) { console.error(err); }
+            } catch(err) { console.error("خطأ في جلب المحادثات:", err); }
         }
 
-        async function openChat(otherId, otherName) {
-            if(!currentUser) return openAuthModal();
-            if(currentUser.id === otherId) return alert("لا يمكنك مراسلة نفسك.");
-            
-            currentChatReceiverId = otherId;
-            document.getElementById('chat-vendor-name').innerHTML = `<i class="fas fa-user"></i> ${otherName || 'محادثة'}`;
-            document.getElementById('chatWidget').style.display = 'flex';
-            
-            loadChatHistory();
-        }
-
-        function closeChat() { document.getElementById('chatWidget').style.display = 'none'; currentChatReceiverId = null; }
-
+        // ================= إصلاح نظام المحادثة (النافذة المباشرة) =================
         async function loadChatHistory() {
             const chatBody = document.getElementById('chatBody');
-            chatBody.innerHTML = '<div style="text-align:center; color:#999; font-size:0.8rem; margin-top:20px;">جاري التحميل...</div>';
+            chatBody.innerHTML = '<div style="text-align:center; color:#999; font-size:0.9rem; margin-top:20px;">جاري تحميل المحادثة...</div>';
             
-            // جلب المحادثة بدقة بين الطرفين
-            const { data } = await supabaseClient.from('messages').select('*')
-                .in('sender_id', [currentUser.id, currentChatReceiverId])
-                .in('receiver_id', [currentUser.id, currentChatReceiverId])
-                .order('created_at', { ascending: true });
+            try {
+                // جلب المحادثة بأكملها ثم فلترتها برمجياً (أكثر استقراراً)
+                const { data, error } = await supabaseClient.from('messages')
+                    .select('*')
+                    .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+                    .order('created_at', { ascending: true });
                 
-            chatBody.innerHTML = '';
-            if(data) {
-                // تصفية إضافية لضمان الدقة
-                const filtered = data.filter(m => (m.sender_id === currentUser.id && m.receiver_id === currentChatReceiverId) || (m.sender_id === currentChatReceiverId && m.receiver_id === currentUser.id));
-                filtered.forEach(msg => displayMessage(msg));
-            }
+                if(error) throw error;
+                
+                chatBody.innerHTML = '';
+                if(data && data.length > 0) {
+                    // تصفية الرسائل لتظهر فقط المتبادلة مع الطرف الآخر (الذي نحدثه الآن)
+                    const filtered = data.filter(m => 
+                        (m.sender_id === currentUser.id && m.receiver_id === currentChatReceiverId) || 
+                        (m.sender_id === currentChatReceiverId && m.receiver_id === currentUser.id)
+                    );
+                    
+                    if (filtered.length > 0) {
+                        filtered.forEach(msg => displayMessage(msg));
+                    } else {
+                        chatBody.innerHTML = '<div style="text-align:center; color:#999; font-size:0.9rem; margin-top:20px;">لا توجد رسائل سابقة. ابدأ المحادثة الآن!</div>';
+                    }
+                } else {
+                    chatBody.innerHTML = '<div style="text-align:center; color:#999; font-size:0.9rem; margin-top:20px;">لا توجد رسائل سابقة. ابدأ المحادثة الآن!</div>';
+                }
+            } catch(err) { console.error("خطأ في تحميل تاريخ المحادثة:", err); }
         }
 
         function displayMessage(msg) {
