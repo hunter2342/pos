@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>متجري - المتجر الشامل</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ================= المتغيرات والألوان ================= */
+        :root { --primary: #4F46E5; --primary-light: #EEF2FF; --success: #10B981; --warning: #F59E0B; --bg-color: #F8FAFC; --card-bg: #FFFFFF; --text-dark: #1E293B; --text-muted: #64748B; --border-color: #E2E8F0; --shadow: 0 4px 15px rgba(0, 0, 0, 0.05); --radius: 12px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-dark); overflow-x: hidden; }
+
+        /* ================= شريط التنقل المتجاوب ================= */
+        header { background-color: var(--card-bg); padding: 1rem 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); position: sticky; top: 0; z-index: 100; flex-wrap: wrap; }
+        .logo { color: var(--primary); font-size: 1.5rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        nav { display: flex; gap: 20px; align-items: center; flex-wrap: wrap;}
+        nav a { text-decoration: none; color: var(--text-muted); font-weight: 500; transition: color 0.3s; cursor: pointer; }
+        nav a:hover, nav a.active { color: var(--primary); }
+        .nav-icons { display: flex; gap: 15px; align-items: center; }
+        .nav-icons i { font-size: 1.3rem; color: var(--text-dark); cursor: pointer; position: relative;}
+        .cart-badge, .msg-badge { position: absolute; top: -8px; right: -8px; background: #EF4444; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 50%; font-weight: bold; display: flex; justify-content: center; align-items: center;}
+
+        /* ================= التخطيط والأزرار ================= */
+        .app-container { display: none; padding: 2rem 5%; animation: fadeIn 0.4s; }
+        .app-container.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .btn-primary { background: var(--primary); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s;}
+        .btn-success { background: var(--success); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;}
+        .btn-danger { background: #EF4444; color: white; padding: 8px 15px; border: none; border-radius: 8px; cursor: pointer;}
+        
+        /* ================= واجهة المتجر (Mobile First Grid) ================= */
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .product-card { background: var(--card-bg); border-radius: var(--radius); padding: 15px; box-shadow: var(--shadow); transition: transform 0.3s; display: flex; flex-direction: column;}
+        .product-card img { width: 100%; height: 160px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
+        .product-actions { display: flex; justify-content: space-between; align-items: center; margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 10px; }
+        
+        /* ================= لوحة تحكم التاجر ================= */
+        .dashboard-layout { display: flex; gap: 20px; align-items: flex-start; }
+        .sidebar { width: 250px; background: var(--card-bg); border-radius: var(--radius); padding: 20px 0; box-shadow: var(--shadow); position: sticky; top: 90px; }
+        .sidebar-menu { list-style: none; }
+        .sidebar-menu li { padding: 15px 20px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: 0.2s; border-right: 4px solid transparent;}
+        .sidebar-menu li:hover, .sidebar-menu li.active { border-right-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+        .dashboard-content { flex-grow: 1; width: 100%; overflow: hidden;}
+        .dash-section { display: none; background: var(--card-bg); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); animation: fadeIn 0.3s;}
+        .dash-section.active { display: block; }
+        
+        /* ================= صندوق رسائل التاجر ================= */
+        .chat-list-item { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
+        .chat-list-item:hover { background: var(--bg-color); }
+        .chat-list-item h4 { margin-bottom: 5px; color: var(--text-dark); }
+        .chat-list-item p { font-size: 0.9rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
+
+        /* ================= الدفع والسلة ================= */
+        .checkout-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem;}
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; outline: none; transition: 0.2s;}
+        .form-group input:focus { border-color: var(--primary); }
+        
+        /* ================= الدردشة الفورية ================= */
+        .chat-widget { position: fixed; bottom: 20px; left: 20px; width: 340px; background: var(--card-bg); border-radius: var(--radius); box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: none; flex-direction: column; z-index: 1000; overflow: hidden; border: 1px solid var(--border-color);}
+        .chat-header { background: var(--primary); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold;}
+        .chat-body { height: 320px; padding: 15px; overflow-y: auto; background: #F8FAFC; display: flex; flex-direction: column; gap: 10px;}
+        .chat-message { padding: 10px 15px; border-radius: 15px; max-width: 85%; font-size: 0.95rem; line-height: 1.4; word-wrap: break-word;}
+        .msg-received { background: white; border: 1px solid var(--border-color); align-self: flex-start; border-bottom-right-radius: 0;}
+        .msg-sent { background: var(--primary); color: white; align-self: flex-end; border-bottom-left-radius: 0;}
+        .chat-input { display: flex; padding: 10px; border-top: 1px solid var(--border-color); background: white;}
+        .chat-input input { flex-grow: 1; border: none; outline: none; padding: 10px; background: var(--bg-color); border-radius: 20px;}
+        .chat-input button { background: transparent; border: none; color: var(--primary); cursor: pointer; font-size: 1.2rem; padding: 0 15px;}
+        
+        /* ================= نظام الإشعارات (Toasts) ================= */
+        #toast-container { position: fixed; top: 80px; left: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: var(--card-bg); border-right: 4px solid var(--primary); padding: 15px 20px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; gap: 5px; min-width: 250px;}
+        @keyframes slideIn { from { transform: translateX(-120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* ================= النوافذ المنبثقة ================= */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(3px);}
+        .modal-content { background: white; padding: 30px; border-radius: var(--radius); width: 90%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative;}
+        .star-rating { color: #ccc; font-size: 1.8rem; cursor: pointer; display: flex; justify-content: center; gap: 5px;}
+        .star-rating .selected { color: var(--warning); }
+
+        /* ================= التصميم للهواتف المحمولة (Responsive) ================= */
+        @media (max-width: 768px) {
+            header { flex-direction: column; gap: 15px; padding: 15px; }
+            .logo { width: 100%; justify-content: center; }
+            nav { width: 100%; justify-content: center; font-size: 0.95rem; }
+            .app-container { padding: 1.5rem 5%; }
+            .dashboard-layout { flex-direction: column; }
+            .sidebar { width: 100%; position: relative; top: 0; padding: 10px; }
+            .sidebar-menu { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 5px;}
+            .sidebar-menu li { white-space: nowrap; border-right: none; border-bottom: 3px solid transparent; padding: 10px; border-radius: 6px;}
+            .sidebar-menu li:hover, .sidebar-menu li.active { border-bottom-color: var(--primary); border-right-color: transparent;}
+            .checkout-layout { grid-template-columns: 1fr; }
+            .chat-widget { width: 90%; left: 5%; right: 5%; bottom: 15px; }
+            .products-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+            .product-card img { height: 130px; }
+            .product-actions button { font-size: 0.8rem; padding: 5px;}
+            #toast-container { left: 5%; right: 5%; top: 10px; align-items: center;}
+            .toast { width: 100%; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- حاوية الإشعارات -->
+    <div id="toast-container"></div>
+
+    <!-- شريط التنقل -->
+    <header>
+        <div class="logo" onclick="switchTab('store-view')"><i class="fas fa-store"></i> متجري</div>
+        <nav>
+            <a onclick="switchTab('store-view')" class="active"><i class="fas fa-home"></i> الرئيسية</a>
+            <a onclick="openCustomerOrders()" id="nav-my-orders" style="display:none;"><i class="fas fa-box-open"></i> طلباتي</a>
+            <div class="nav-icons" style="margin-right: 15px;">
+                <span onclick="switchTab('checkout-view')" style="position: relative;">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-badge" id="cart-count">0</span>
+                </span>
+                <i class="fas fa-user-circle" onclick="openAuthModal()" id="user-icon" title="حسابي"></i>
+            </div>
+        </nav>
+    </header>
+
+    <!-- 1. واجهة المتجر -->
+    <main id="store-view" class="app-container active">
+        <h2 style="margin-bottom: 20px;"><i class="fas fa-fire" style="color: var(--primary);"></i> أحدث المنتجات</h2>
+        <div class="products-grid" id="public-products">
+            <p>جاري تحميل المنتجات...</p>
+        </div>
+    </main>
+
+    <!-- 2. لوحة تحكم التاجر -->
+    <main id="dashboard-view" class="app-container">
+        <div class="dashboard-layout">
+            <aside class="sidebar">
+                <ul class="sidebar-menu">
+                    <li onclick="switchDashTab('dash-products', this)" class="active">
+                        <span><i class="fas fa-box"></i> إدارة المنتجات</span>
+                    </li>
+                    <li onclick="switchDashTab('dash-orders', this)">
+                        <span><i class="fas fa-clipboard-list"></i> الطلبات الواردة</span>
+                    </li>
+                    <li onclick="switchDashTab('dash-messages', this)">
+                        <span><i class="fas fa-envelope"></i> الرسائل</span>
+                        <span id="msg-badge-count" class="msg-badge" style="display:none; position:relative; top:0; right:0;">0</span>
+                    </li>
+                    <li onclick="handleLogout()" style="color: red;">
+                        <span><i class="fas fa-sign-out-alt"></i> خروج</span>
+                    </li>
+                </ul>
+            </aside>
+            
+            <div class="dashboard-content">
+                <!-- قسم المنتجات -->
+                <div id="dash-products" class="dash-section active">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap:10px;">
+                        <h3 style="margin:0;">منتجاتي المرفوعة</h3>
+                        <button class="btn-primary" onclick="document.getElementById('addProductForm').style.display='block'">+ منتج جديد</button>
+                    </div>
+
+                    <div class="add-product-form" id="addProductForm" style="background: var(--bg-color); padding: 20px; border-radius: 12px; margin-bottom: 20px; display: none; border: 1px solid var(--border-color);">
+                        <h4 style="margin-bottom: 15px;">إضافة منتج</h4>
+                        <form onsubmit="submitNewProduct(event)">
+                            <div class="form-group"><label>الاسم</label><input type="text" id="new-prod-title" required></div>
+                            <div style="display: flex; gap: 15px;">
+                                <div class="form-group" style="flex: 1;"><label>السعر (USD)</label><input type="number" step="0.01" id="new-prod-price" required></div>
+                                <div class="form-group" style="flex: 1;"><label>المخزون</label><input type="number" id="new-prod-stock" required></div>
+                            </div>
+                            <div class="form-group"><label>صورة (من الجهاز)</label><input type="file" id="new-prod-img" accept="image/*" required></div>
+                            <button type="submit" class="btn-success">نشر المنتج</button>
+                            <button type="button" class="btn-danger" onclick="document.getElementById('addProductForm').style.display='none'">إلغاء</button>
+                        </form>
+                    </div>
+
+                    <div id="vendor-products-list">جاري التحميل...</div>
+                </div>
+
+                <!-- قسم الطلبات -->
+                <div id="dash-orders" class="dash-section">
+                    <h3 style="margin-bottom: 20px;">الطلبات الواردة</h3>
+                    <div id="vendor-orders-list">جاري البحث عن طلبات...</div>
+                </div>
+
+                <!-- قسم الرسائل (الصندوق الوارد للتاجر) -->
+                <div id="dash-messages" class="dash-section">
+                    <h3 style="margin-bottom: 20px;">صندوق الوارد</h3>
+                    <div id="vendor-conversations-list">جاري تحميل الرسائل...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 3. لوحة تحكم العميل -->
+    <main id="my-orders-view" class="app-container">
+        <h2><i class="fas fa-box-open"></i> طلباتي السابقة</h2>
+        <div id="customer-orders-list" style="margin-top: 20px;">جاري التحميل...</div>
+    </main>
+
+    <!-- 4. سلة المشتريات -->
+    <main id="checkout-view" class="app-container">
+        <h2 style="margin-bottom:20px;">إتمام الطلب</h2>
+        <div class="checkout-layout">
+            <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: var(--shadow);">
+                <form id="checkout-form" onsubmit="processOrder(event)">
+                    <div class="form-group"><label>الاسم الكامل</label><input type="text" id="order-name" required></div>
+                    <div class="form-group"><label>رقم الهاتف</label><input type="tel" id="order-phone" required></div>
+                    <div class="form-group"><label>العنوان التفصيلي</label><textarea id="order-address" rows="3" required></textarea></div>
+                    <button type="submit" class="btn-success" style="width: 100%; margin-top: 10px; padding: 15px; font-size: 1.1rem;">تأكيد الطلب</button>
+                </form>
+            </div>
+            <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: var(--shadow); height: fit-content;">
+                <h3 style="margin-bottom: 20px;">ملخص السلة</h3>
+                <div id="cart-items-container"></div>
+                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2rem; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                    <span>الإجمالي:</span><span id="cart-total-price" style="color: var(--primary);">$0.00</span>
+                </div>
+                <button class="btn-danger" style="width: 100%; margin-top: 15px;" onclick="clearCart()">إفراغ السلة</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- نافذة الدردشة العائمة -->
+    <div class="chat-widget" id="chatWidget">
+        <div class="chat-header">
+            <span id="chat-vendor-name"><i class="fas fa-user-circle"></i> محادثة</span>
+            <i class="fas fa-times" style="cursor: pointer; padding:5px;" onclick="closeChat()"></i>
+        </div>
+        <div class="chat-body" id="chatBody"></div>
+        <div class="chat-input">
+            <input type="text" id="chatMsgInput" placeholder="اكتب رسالة...">
+            <button onclick="sendChatMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- نافذة التقييم -->
+    <div id="review-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 15px; text-align:center;">تقييم المنتج</h3>
+            <div class="star-rating" id="star-rating-container" style="margin-bottom: 20px;"></div>
+            <textarea id="review-comment" placeholder="شاركنا رأيك..." style="width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--border-color); resize:none;"></textarea>
+            <button class="btn-success" style="width: 100%; margin-bottom: 10px;" onclick="submitReview()">حفظ التقييم</button>
+            <button class="btn-danger" style="width: 100%; background:transparent; color:red; border:1px solid red;" onclick="document.getElementById('review-modal').style.display='none'">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- نافذة المصادقة -->
+    <div id="auth-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 id="auth-title" style="margin-bottom: 20px; text-align: center; color:var(--primary);">تسجيل الدخول</h2>
+            <form onsubmit="handleRealAuth(event)">
+                <div class="form-group" id="name-field" style="display: none;"><label>الاسم</label><input type="text" id="auth-name"></div>
+                <div class="form-group"><label>البريد الإلكتروني</label><input type="email" id="auth-email" required></div>
+                <div class="form-group"><label>كلمة المرور</label><input type="password" id="auth-password" required></div>
+                <div class="form-group" id="role-field" style="display: none;">
+                    <label>نوع الحساب</label>
+                    <select id="auth-role"><option value="customer">مشتري</option><option value="vendor">تاجر</option></select>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; font-size:1.1rem; padding:12px;">دخول</button>
+            </form>
+            <div style="text-align: center; margin-top: 20px;"><a href="#" onclick="toggleAuthMode()" style="color: var(--text-muted);">إنشاء حساب جديد</a></div>
+            <div style="text-align: center; margin-top: 15px;"><i class="fas fa-times" onclick="document.getElementById('auth-modal').style.display='none'" style="color: red; cursor:pointer; font-size:1.5rem;"></i></div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        const SUPABASE_URL = 'https://shmfholwhvvhjylpnuvv.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_qf1imx4dgHU4HPRdtcLKKA_cYkgTVJh';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let isSignUp = false; let currentUser = null; let userRole = 'customer';
+        let cart = JSON.parse(localStorage.getItem('myCart')) || [];
+        
+        let currentChatReceiverId = null;
+        let chatSubscription = null;
+        let currentReviewProductId = null;
+        let currentRating = 5;
+
+        // دالة الإشعارات اللحظية (Toasts)
+        function showNotification(title, body) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<strong style="color:var(--primary);"><i class="fas fa-bell"></i> ${title}</strong><p style="font-size:0.9rem; color:var(--text-dark);">${body}</p>`;
+            document.getElementById('toast-container').appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.app-container').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            window.scrollTo(0, 0);
+            
+            if(tabId === 'store-view') fetchRealProducts();
+            if(tabId === 'dashboard-view') {
+                document.querySelector('.sidebar-menu li').click(); // فتح تبويب المنتجات افتراضياً
+            }
+            if(tabId === 'checkout-view') renderCart();
+        }
+
+        function switchDashTab(sectionId, element) {
+            document.querySelectorAll('.sidebar-menu li').forEach(li => li.classList.remove('active'));
+            element.classList.add('active');
+            document.querySelectorAll('.dash-section').forEach(sec => sec.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+
+            if(sectionId === 'dash-products') fetchVendorProducts();
+            if(sectionId === 'dash-orders') fetchVendorOrders();
+            if(sectionId === 'dash-messages') {
+                document.getElementById('msg-badge-count').style.display = 'none'; // إخفاء الشارة عند القراءة
+                document.getElementById('msg-badge-count').innerText = '0';
+                fetchVendorConversations();
+            }
+        }
+
+        function openAuthModal() {
+            if(currentUser) {
+                if(userRole === 'vendor') switchTab('dashboard-view');
+                else handleLogout();
+            } else { document.getElementById('auth-modal').style.display = 'flex'; }
+        }
+
+        function toggleAuthMode() {
+            isSignUp = !isSignUp;
+            document.getElementById('auth-title').innerText = isSignUp ? 'إنشاء حساب' : 'تسجيل دخول';
+            document.getElementById('name-field').style.display = isSignUp ? 'block' : 'none';
+            document.getElementById('role-field').style.display = isSignUp ? 'block' : 'none';
+        }
+
+        async function handleRealAuth(e) {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            try {
+                if (isSignUp) {
+                    const name = document.getElementById('auth-name').value;
+                    const role = document.getElementById('auth-role').value;
+                    const { error } = await supabaseClient.auth.signUp({ email, password, options: { data: { full_name: name, role: role } } });
+                    if (error) throw error; alert("تم التسجيل! يمكنك الدخول الآن."); document.getElementById('auth-modal').style.display='none';
+                } else {
+                    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                    if (error) throw error; document.getElementById('auth-modal').style.display='none';
+                }
+            } catch (error) { alert("خطأ: " + error.message); }
+        }
+
+        async function handleLogout() {
+            await supabaseClient.auth.signOut(); switchTab('store-view');
+            showNotification('تسجيل خروج', 'تم تسجيل خروجك بنجاح.');
+        }
+
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
+            if (session) {
+                currentUser = session.user;
+                const { data: profile } = await supabaseClient.from('profiles').select('role, full_name').eq('id', currentUser.id).single();
+                if (profile) {
+                    userRole = profile.role;
+                    document.getElementById('user-icon').style.color = 'var(--success)';
+                    if(userRole === 'customer') document.getElementById('nav-my-orders').style.display = 'inline-block';
+                    subscribeToMessages(); // تشغيل الإشعارات عند الدخول
+                }
+            } else {
+                currentUser = null; userRole = 'customer';
+                document.getElementById('user-icon').style.color = 'var(--text-dark)';
+                document.getElementById('nav-my-orders').style.display = 'none';
+                if(chatSubscription) supabaseClient.removeChannel(chatSubscription);
+            }
+        });
+
+        // 1. عرض المنتجات في المتجر
+        async function fetchRealProducts() {
+            const container = document.getElementById('public-products');
+            try {
+                const { data: products, error } = await supabaseClient.from('products').select('*, profiles(full_name), reviews(rating)');
+                if (error) throw error;
+                if (!products || products.length === 0) { container.innerHTML = '<p style="grid-column:1/-1;">لا توجد منتجات حالياً.</p>'; return; }
+
+                container.innerHTML = products.map(p => {
+                    let avgRating = 0;
+                    if(p.reviews && p.reviews.length > 0) {
+                        let sum = p.reviews.reduce((acc, rev) => acc + rev.rating, 0);
+                        avgRating = (sum / p.reviews.length).toFixed(1);
+                    }
+                    const starsHTML = avgRating > 0 ? `<span style="color: var(--warning);"><i class="fas fa-star"></i> ${avgRating}</span>` : `<span style="color:#ccc; font-size:0.8rem;">جديد</span>`;
+
+                    return `
+                        <div class="product-card">
+                            <img src="${p.image_url || 'https://via.placeholder.com/150'}">
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom:5px;"><i class="fas fa-store"></i> ${p.profiles?.full_name || 'تاجر'}</div>
+                            <h4 style="margin-bottom: 5px; font-size:1rem; line-height:1.3;">${p.title}</h4>
+                            <div style="margin-bottom: 5px;">${starsHTML}</div>
+                            <div style="font-size: 1.1rem; font-weight: bold; color: var(--primary);">$${p.price}</div>
+                            <div class="product-actions">
+                                <button class="btn-primary" style="padding: 6px 12px; font-size:0.9rem;" onclick="addToCart('${p.id}', '${p.title.replace(/'/g, "\\'")}', ${p.price}, '${p.image_url}')">السلة <i class="fas fa-plus"></i></button>
+                                <div>
+                                    <button onclick="openReviewModal('${p.id}')" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.2rem; margin-left:10px;"><i class="far fa-star"></i></button>
+                                    <button onclick="openChat('${p.vendor_id}', '${p.profiles?.full_name}')" style="background:none; border:none; color:var(--primary); cursor:pointer; font-size:1.2rem;"><i class="far fa-comment-dots"></i></button>
+                                </div>
+                            </div>
+                        </div>`;
+                }).join('');
+            } catch (err) { console.error(err); }
+        }
+
+        // 2. إدارة التاجر
+        async function submitNewProduct(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]'); btn.innerText='جاري الرفع...'; btn.disabled=true;
+            try {
+                let imgUrl = 'https://via.placeholder.com/150';
+                const file = document.getElementById('new-prod-img').files[0];
+                if(file) {
+                    const filePath = `${currentUser.id}/${Math.random().toString(36).substring(2)}.${file.name.split('.').pop()}`;
+                    await supabaseClient.storage.from('product-images').upload(filePath, file);
+                    imgUrl = supabaseClient.storage.from('product-images').getPublicUrl(filePath).data.publicUrl;
+                }
+                await supabaseClient.from('products').insert([{ vendor_id: currentUser.id, title: document.getElementById('new-prod-title').value, price: parseFloat(document.getElementById('new-prod-price').value), stock: parseInt(document.getElementById('new-prod-stock').value), image_url: imgUrl }]);
+                showNotification("نجاح", "تمت إضافة المنتج بنجاح!"); document.getElementById('addProductForm').style.display='none'; e.target.reset(); fetchVendorProducts();
+            } catch (err) { alert(err.message); } finally { btn.innerText='نشر المنتج'; btn.disabled=false; }
+        }
+
+        async function fetchVendorProducts() {
+            if(!currentUser) return;
+            const container = document.getElementById('vendor-products-list');
+            const { data } = await supabaseClient.from('products').select('*').eq('vendor_id', currentUser.id);
+            if (!data || data.length === 0) { container.innerHTML = '<p>لا توجد منتجات.</p>'; return; }
+            container.innerHTML = data.map(p => `
+                <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--border-color); display:flex; align-items:center; gap:15px;">
+                    <img src="${p.image_url}" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">
+                    <div><strong>${p.title}</strong><div style="color: var(--text-muted); font-size: 0.9rem;">$${p.price} | المخزون: ${p.stock}</div></div>
+                </div>`).join('');
+        }
+
+        async function fetchVendorOrders() {
+            if(!currentUser) return;
+            const container = document.getElementById('vendor-orders-list');
+            const { data: orderItems } = await supabaseClient.from('order_items').select(`id, quantity, price_at_time, orders!inner(id, status, address_details), products!inner(title, image_url, vendor_id)`).eq('products.vendor_id', currentUser.id);
+            if (!orderItems || orderItems.length === 0) { container.innerHTML = '<p>لا توجد طلبات.</p>'; return; }
+            container.innerHTML = orderItems.map(item => {
+                return `
+                <div style="background: white; padding: 15px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:10px; flex-wrap:wrap; gap:10px;">
+                        <strong>طلب #${item.orders.id.substring(0,6)}</strong>
+                        <select onchange="updateOrderStatus('${item.orders.id}', this.value)" style="padding:5px; border-radius:5px; border:1px solid #ccc; font-weight:bold;">
+                            <option value="pending" ${item.orders.status === 'pending' ? 'selected' : ''}>قيد التجهيز</option>
+                            <option value="shipped" ${item.orders.status === 'shipped' ? 'selected' : ''}>تم الشحن</option>
+                            <option value="delivered" ${item.orders.status === 'delivered' ? 'selected' : ''}>تم التوصيل</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; gap:15px; align-items:center;">
+                        <img src="${item.products.image_url}" style="width: 50px; height: 50px; border-radius: 5px; object-fit: cover;">
+                        <div>
+                            <div><strong>${item.products.title}</strong></div>
+                            <div style="color: var(--primary); font-size: 0.9rem;">$${item.price_at_time} x ${item.quantity}</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.85rem; background: var(--bg-color); padding: 10px; border-radius: 5px; line-height:1.5;">${item.orders.address_details}</div>
+                </div>`;
+            }).join('');
+        }
+
+        async function updateOrderStatus(orderId, newStatus) {
+            await supabaseClient.from('orders').update({ status: newStatus }).eq('id', orderId);
+            showNotification("تحديث", "تم تحديث حالة الطلب.");
+        }
+
+        // 3. صندوق رسائل التاجر (الجديد)
+        async function fetchVendorConversations() {
+            if(!currentUser) return;
+            const container = document.getElementById('vendor-conversations-list');
+            try {
+                const { data, error } = await supabaseClient.from('messages').select(`id, content, created_at, sender_id, receiver_id`).or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`).order('created_at', { ascending: false });
+                if(error) throw error;
+                if(!data || data.length === 0) { container.innerHTML = '<p>لا توجد رسائل سابقة.</p>'; return; }
+
+                // تجميع الرسائل حسب العميل للحصول على أحدث رسالة
+                const convos = {};
+                for(let msg of data) {
+                    const otherId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
+                    if(!convos[otherId]) {
+                        convos[otherId] = { id: otherId, lastMsg: msg.content };
+                    }
+                }
+                
+                // للحصول على أسماء العملاء بأمان
+                const userIds = Object.keys(convos);
+                const { data: profiles } = await supabaseClient.from('profiles').select('id, full_name').in('id', userIds);
+                profiles.forEach(p => { if(convos[p.id]) convos[p.id].name = p.full_name; });
+
+                container.innerHTML = Object.values(convos).map(c => `
+                    <div class="chat-list-item" onclick="openChat('${c.id}', '${c.name || 'عميل'}')">
+                        <div style="flex-grow:1; overflow:hidden;">
+                            <h4><i class="fas fa-user-circle"></i> ${c.name || 'عميل'}</h4>
+                            <p>${c.lastMsg}</p>
+                        </div>
+                        <i class="fas fa-chevron-left" style="color:var(--text-muted);"></i>
+                    </div>
+                `).join('');
+            } catch(err) { console.error(err); }
+        }
+
+        // 4. طلبات العميل
+        function openCustomerOrders() { switchTab('my-orders-view'); fetchCustomerOrders(); }
+        async function fetchCustomerOrders() {
+            const container = document.getElementById('customer-orders-list');
+            const { data: orders } = await supabaseClient.from('orders').select(`id, status, total_price, order_items(quantity, products(title))`).eq('customer_id', currentUser.id);
+            if (!orders || orders.length === 0) { container.innerHTML = 'لا توجد طلبات.'; return; }
+            container.innerHTML = orders.map(ord => `
+                <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 15px; box-shadow: var(--shadow);">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <strong>طلب #${ord.id.substring(0,8)}</strong>
+                        <strong style="color:var(--${ord.status==='delivered'?'success':'warning'});">${ord.status==='pending'?'قيد التجهيز':ord.status==='shipped'?'في الطريق':'تم التوصيل'}</strong>
+                    </div>
+                    <div>${ord.order_items.map(i => `<div style="font-size:0.9rem;">- ${i.products.title} (${i.quantity})</div>`).join('')}</div>
+                    <div style="margin-top: 10px; font-weight: bold;">الإجمالي: $${ord.total_price}</div>
+                </div>`).join('');
+        }
+
+        // 5. التقييمات
+        function openReviewModal(productId) {
+            if(!currentUser) return openAuthModal();
+            currentReviewProductId = productId; setRating(5);
+            document.getElementById('review-comment').value = '';
+            document.getElementById('review-modal').style.display = 'flex';
+        }
+        function setRating(stars) {
+            currentRating = stars;
+            const container = document.getElementById('star-rating-container');
+            container.innerHTML = '';
+            for(let i=1; i<=5; i++) container.innerHTML += `<i class="fas fa-star ${i <= stars ? 'selected' : ''}" onclick="setRating(${i})"></i>`;
+        }
+        async function submitReview() {
+            await supabaseClient.from('reviews').insert([{ product_id: currentReviewProductId, customer_id: currentUser.id, rating: currentRating, comment: document.getElementById('review-comment').value }]);
+            showNotification("تم", "شكراً لتقييمك!"); document.getElementById('review-modal').style.display = 'none'; fetchRealProducts();
+        }
+
+        // 6. الدردشة المباشرة والإشعارات
+        async function openChat(otherId, otherName) {
+            if(!currentUser) return openAuthModal();
+            if(currentUser.id === otherId) return alert("لا يمكنك مراسلة نفسك.");
+            
+            currentChatReceiverId = otherId;
+            document.getElementById('chat-vendor-name').innerHTML = `<i class="fas fa-user"></i> ${otherName || 'محادثة'}`;
+            document.getElementById('chatWidget').style.display = 'flex';
+            
+            loadChatHistory();
+        }
+
+        function closeChat() { document.getElementById('chatWidget').style.display = 'none'; }
+
+        async function loadChatHistory() {
+            const chatBody = document.getElementById('chatBody');
+            chatBody.innerHTML = '<div style="text-align:center; color:#999; font-size:0.8rem; margin-top:20px;">جاري التحميل...</div>';
+            const { data } = await supabaseClient.from('messages').select('*').or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${currentChatReceiverId}),and(sender_id.eq.${currentChatReceiverId},receiver_id.eq.${currentUser.id})`).order('created_at', { ascending: true });
+            chatBody.innerHTML = '';
+            if(data) data.forEach(msg => displayMessage(msg));
+        }
+
+        function displayMessage(msg) {
+            const chatBody = document.getElementById('chatBody');
+            const isMe = msg.sender_id === currentUser.id;
+            chatBody.innerHTML += `<div class="chat-message ${isMe ? 'msg-sent' : 'msg-received'}">${msg.content}</div>`;
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatMsgInput');
+            const text = input.value.trim();
+            if(!text) return;
+            input.value = '';
+            await supabaseClient.from('messages').insert([{ sender_id: currentUser.id, receiver_id: currentChatReceiverId, content: text }]);
+        }
+
+        // استقبال الرسائل والإشعارات اللحظية
+        function subscribeToMessages() {
+            if(chatSubscription) supabaseClient.removeChannel(chatSubscription);
+            
+            chatSubscription = supabaseClient.channel('custom-all-channel')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+                    const msg = payload.new;
+                    
+                    // إذا كنت أنا المستقبل للرسالة
+                    if (msg.receiver_id === currentUser.id) {
+                        
+                        // 1. إظهار الإشعار المنبثق (Toast)
+                        showNotification('رسالة جديدة 📩', msg.content);
+                        
+                        // 2. تحديث عداد الرسائل في لوحة التاجر
+                        let badge = document.getElementById('msg-badge-count');
+                        if(badge && document.getElementById('dash-messages').classList.contains('active') === false) {
+                            badge.style.display = 'flex';
+                            badge.innerText = parseInt(badge.innerText || 0) + 1;
+                        }
+                        
+                        // 3. تحديث صندوق الوارد إذا كان مفتوحاً
+                        if(document.getElementById('dash-messages').classList.contains('active')) {
+                            fetchVendorConversations();
+                        }
+                    }
+
+                    // إذا كانت نافذة المحادثة مفتوحة مع هذا الشخص تحديداً، اعرض الرسالة
+                    if (
+                        (msg.sender_id === currentUser.id && msg.receiver_id === currentChatReceiverId) ||
+                        (msg.sender_id === currentChatReceiverId && msg.receiver_id === currentUser.id)
+                    ) {
+                        displayMessage(msg);
+                    }
+                })
+                .subscribe();
+        }
+
+        // السلة
+        updateCartBadge();
+        function addToCart(id, title, price, img) { cart.push({ id, title, price, img }); localStorage.setItem('myCart', JSON.stringify(cart)); updateCartBadge(); showNotification("السلة", `تمت إضافة: ${title}`); }
+        function updateCartBadge() { document.getElementById('cart-count').innerText = cart.length; }
+        function clearCart() { cart = []; localStorage.setItem('myCart', JSON.stringify(cart)); updateCartBadge(); renderCart(); }
+        function renderCart() {
+            const container = document.getElementById('cart-items-container'); const totalSpan = document.getElementById('cart-total-price');
+            if (cart.length === 0) { container.innerHTML = '<p>السلة فارغة.</p>'; totalSpan.innerText = '$0.00'; return; }
+            let total = 0;
+            container.innerHTML = cart.map(item => { total += item.price; return `<div style="display:flex; gap:15px; margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:10px; align-items:center;"><img src="${item.img}" style="width:50px; height:50px; border-radius:5px; object-fit:cover;"><div><h4 style="font-size:0.95rem;">${item.title}</h4><div style="color:var(--primary); font-weight:bold;">$${item.price}</div></div></div>`; }).join('');
+            totalSpan.innerText = '$' + total.toFixed(2);
+        }
+        async function processOrder(e) {
+            e.preventDefault();
+            if (cart.length===0) return alert("السلة فارغة."); if (!currentUser) return openAuthModal();
+            const btn = e.target.querySelector('button[type="submit"]'); btn.innerText='جاري التأكيد...'; btn.disabled=true;
+            try {
+                const { data: ordData, error: ordErr } = await supabaseClient.from('orders').insert([{ customer_id: currentUser.id, total_price: cart.reduce((s,i)=>s+i.price,0), address_details: document.getElementById('order-name').value+' | '+document.getElementById('order-phone').value+' | '+document.getElementById('order-address').value, payment_method: 'cod' }]).select('id').single();
+                if (ordErr) throw ordErr;
+                await supabaseClient.from('order_items').insert(cart.map(i => ({ order_id: ordData.id, product_id: i.id, quantity: 1, price_at_time: i.price })));
+                showNotification("نجاح!", "تم استلام طلبك بنجاح."); clearCart(); openCustomerOrders(); e.target.reset();
+            } catch (err) { alert(err.message); } finally { btn.innerText='تأكيد الطلب'; btn.disabled=false; }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => { fetchRealProducts(); });
+    </script>
+</body>
+</html>
